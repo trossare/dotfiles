@@ -4,21 +4,32 @@ local function gh(repo) return 'https://github.com/' .. repo end
 
 ---@type table<string, vim.lsp.Config>
 local servers = {
-  -- clangd = {},
-  -- gopls = {},
-  -- pyright = {},
-  -- rust_analyzer = {},
-
   stylua = {},
+  yamlls = {},
 
   tofu_ls = {},
   ansiblels = {},
-  yamlls = {},
   docker_language_server = {},
 
   clangd = {},
+  gopls = {},
+
+  bashls = {},
+  shellcheck = {},
+  shfmt = {},
+
+  tinymist = {
+    settings = {
+      formatterMode = 'typstyle',
+
+      -- When to export is handled by the custom.plugins.typst
+      -- exportPdf = '',
+      outputPath = '$root/output/$dir/$name',
+    },
+  },
 
   prettierd = {},
+
   tailwindcss = {
     settings = {
       tailwindCSS = {
@@ -31,6 +42,7 @@ local servers = {
       },
     },
   },
+
   vtsls = {
     settings = {
       vtsls = {
@@ -46,25 +58,16 @@ local servers = {
           parameterNames = {
             enabled = 'all',
           },
-          parameterTypes = {
-            enabled = false,
-          },
-          variableTypes = {
-            enabled = true,
-          },
-          propertyDeclarationTypes = {
-            enabled = true,
-          },
-          functionLikeReturnTypes = {
-            enabled = true,
-          },
-          enumMemberValues = {
-            enabled = true,
-          },
+          parameterTypes = { enabled = true },
+          variableTypes = { enabled = true },
+          propertyDeclarationTypes = { enabled = true },
+          functionLikeReturnTypes = { enabled = true },
+          enumMemberValues = { enabled = true },
         },
       },
     },
   },
+
   svelte = {
     settings = {
       typescript = {
@@ -82,9 +85,6 @@ local servers = {
       },
     },
   },
-
-  bashls = {},
-  shellcheck = {},
 
   -- Special Lua Config, as recommended by neovim help docs
   lua_ls = {
@@ -117,14 +117,6 @@ local servers = {
       Lua = {
         format = { enable = false }, -- Disable formatting (formatting is done by stylua)
       },
-    },
-  },
-
-  typstyle = {},
-  tinymist = {
-    settings = {
-      exportPdf = 'onType',
-      outputPath = '$root/output/$dir/$name',
     },
   },
 }
