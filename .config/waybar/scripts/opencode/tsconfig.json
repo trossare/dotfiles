@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "types": ["bun"],
+    "noEmit": true
+  }
+}

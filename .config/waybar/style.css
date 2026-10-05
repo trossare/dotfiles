@@ -4,6 +4,7 @@
 @define-color bg-black #000000;
 @define-color bg-primary @bg-black;
 @define-color color-primary white;
+@define-color nothing #680D0D;
 @define-color error-red #E01D1D;
 @define-color warning-yellow #FFE952;
 @define-color cool-green #26A65B;
@@ -235,6 +236,30 @@ tooltip label {
 
 #custom-spotifyd.multiple {
   color: @warning-yellow;
+}
+
+#custom-opencode {
+  background-color: @bg-primary;
+  border-radius: 5px;
+  margin: 5px 0;
+  padding: 0 10px;
+  min-height: 25px;
+}
+
+#custom-opencode.high {
+  color: @cool-green;
+}
+
+#custom-opencode.medium {
+  color: @warning-yellow;
+}
+
+#custom-opencode.low {
+  color: @error-red;
+}
+
+#custom-opencode.nothing {
+  color: @nothing;
 }
 
 #backlight {
