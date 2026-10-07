@@ -56,13 +56,13 @@ function formattedUsageWindow(
 }
 
 async function main(): Promise<WaybarExecReturn> {
-  const configHome = process.env.XDG_CONFIG_HOME;
+  const stateHome = process.env.XDG_STATE_HOME || "/home/tross/.local/state";
 
-  if (configHome == undefined) {
-    throw Error("XDG_CONFIG_HOME not set");
+  if (stateHome == undefined) {
+    throw Error("XDG_STATE_HOME not set");
   }
 
-  const keyPath = path.resolve(configHome, "opencode", "opencode_go.txt");
+  const keyPath = path.resolve(stateHome, "waybar-scripts", "opencode_go");
   const key = await readFile(keyPath, "utf8").then((text) =>
     text.replace(/\r?\n$/, ""),
   );
@@ -100,6 +100,7 @@ async function main(): Promise<WaybarExecReturn> {
     alt: `${gauge} (${usage.rolling.remaining}% / ${usage.weekly.remaining}% / ${usage.monthly.remaining}%)`,
     class: remainingLabel,
     tooltip: [
+      `Fetched at ${formatDate(Temporal.Now.instant())}`,
       formattedUsageWindow("Rolling", usage.rolling),
       formattedUsageWindow("Weekly", usage.weekly),
       formattedUsageWindow("Monthly", usage.monthly),
