@@ -13,6 +13,11 @@
 
 !.config/hypr/
 !.config/hypr/**
+.config/hypr/old
+.config/hypr/old/**
 
 !.config/waybar/
 !.config/waybar/**
+
+!.config/opencode/
+!.config/opencode/**
