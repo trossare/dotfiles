@@ -111,6 +111,8 @@ do
   -- Tab
   vim.keymap.set('n', 'H', '<cmd>bprevious<CR>')
   vim.keymap.set('n', 'L', '<cmd>bnext<CR>')
+  vim.keymap.set('n', '<A-h>', '<cmd>bprevious<CR>')
+  vim.keymap.set('n', '<A-l>', '<cmd>bnext<CR>')
 
   -- Indent
   vim.keymap.set('v', '>', '>gv')
