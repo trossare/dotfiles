@@ -37,8 +37,11 @@ hl.on("config.reloaded", function()
 	hl.env(ENV_NAME, reloadedCount)
 end)
 
-local scratchWorkspaceName = "scratch"
-local scratchWorkspace = "special:" .. scratchWorkspaceName
+local altWorkspaceName = "alt"
+local altWorkspace = "special:" .. altWorkspaceName
+
+local slopWorkspaceName = "slop"
+local slopWorkspace = "special:" .. slopWorkspaceName
 
 local terminal = "kitty"
 local hyprlauncher = "insnlauncher"
@@ -54,15 +57,19 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("zen-browser", { workspace = 1 .. " silent" })
 	hl.exec_cmd(terminal .. " tmux new-session -A -s main", { workspace = 2 .. " silent" })
 	hl.exec_cmd(terminal .. " tmux new-session -A -s alt", {
-		workspace = scratchWorkspace .. " silent",
+		workspace = altWorkspace .. " silent",
 	})
 	hl.exec_cmd("gnome-text-editor", { workspace = 10 .. " silent" })
 end)
 
-hl.env("XDG_CONFIG_HOME", os.getenv("HOME") .. "/.config")
--- hl.env("GDK_SCALE", "2")
-hl.env("XCURSOR_SIZE", "24")
-hl.env("HYPRCURSOR_SIZE", "24")
+hl.on("config.reloaded", function()
+	hl.env("XDG_CONFIG_HOME", os.getenv("HOME") .. "/.config")
+	hl.env("XDG_STATE_HOME", os.getenv("HOME") .. "/.local/state")
+	hl.env("XDG_DATA_HOME", os.getenv("HOME") .. "/.local/share")
+	-- hl.env("GDK_SCALE", "2")
+	hl.env("XCURSOR_SIZE", "24")
+	hl.env("HYPRCURSOR_SIZE", "24")
+end)
 
 hl.config({
 	general = {
@@ -160,7 +167,7 @@ hl.config({
 })
 
 hl.workspace_rule({
-	workspace = scratchWorkspace,
+	workspace = altWorkspace,
 	layout = "scrolling",
 })
 
@@ -215,8 +222,11 @@ for i = 1, 10 do
 	hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
 end
 
-hl.bind(mainMod .. " + D", hl.dsp.workspace.toggle_special(scratchWorkspaceName))
-hl.bind(mainMod .. " + SHIFT + D", hl.dsp.window.move({ workspace = scratchWorkspace }))
+hl.bind(mainMod .. " + D", hl.dsp.workspace.toggle_special(altWorkspaceName))
+hl.bind(mainMod .. " + SHIFT + D", hl.dsp.window.move({ workspace = altWorkspace }))
+
+hl.bind(mainMod .. " + A", hl.dsp.workspace.toggle_special(slopWorkspaceName))
+hl.bind(mainMod .. " + SHIFT + A", hl.dsp.window.move({ workspace = slopWorkspace }))
 
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
@@ -307,9 +317,13 @@ hl.window_rule({
 	},
 })
 
--- Smaller window in magic workspace (mod + d)
+-- Smaller window in special workspaces (mod + d/a)
 hl.workspace_rule({
-	workspace = scratchWorkspace,
+	workspace = altWorkspace,
+	gaps_out = 40,
+})
+hl.workspace_rule({
+	workspace = slopWorkspace,
 	gaps_out = 40,
 })
 
@@ -397,7 +411,7 @@ hl.window_rule({
 -- Legcord
 hl.window_rule({
 	name = "legcord",
-	workspace = scratchWorkspace .. " silent",
+	workspace = altWorkspace .. " silent",
 	scroll_touchpad = 0.1,
 	match = {
 		class = "legcord",
@@ -406,7 +420,7 @@ hl.window_rule({
 
 hl.window_rule({
 	name = "legcord-loading",
-	workspace = scratchWorkspace,
+	workspace = altWorkspace,
 	match = {
 		class = "legcord",
 		title = "Legcord",
@@ -424,7 +438,7 @@ hl.window_rule({
 
 hl.window_rule({
 	name = "thunderbird",
-	workspace = scratchWorkspace,
+	workspace = altWorkspace,
 	match = {
 		class = "org.mozilla.Thunderbird",
 	},
