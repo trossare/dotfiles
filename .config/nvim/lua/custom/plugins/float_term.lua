@@ -69,15 +69,19 @@ local function close_window(win)
   if vim.api.nvim_win_is_valid(win) then vim.api.nvim_win_close(win, false) end
 end
 
+---@class CreateOpts
+---@field close_keymaps string[] | nil
+
 ---@param cmd string
 ---@param size number
----@param close_keymap string[] | nil
+---@param opts? CreateOpts
 ---@return function
-M.create = function(cmd, size, close_keymap)
+M.create = function(cmd, size, opts)
   local id = generate_id()
+  opts = opts or {}
 
   local close_keymaps = { { 'n', 'q' } }
-  if close_keymap ~= nil then table.insert(close_keymaps, close_keymap) end
+  if opts.close_keymaps ~= nil then table.insert(close_keymaps, opts.close_keymaps) end
 
   return function()
     local buf, needs_setup = get_buf(id)

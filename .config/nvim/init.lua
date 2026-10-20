@@ -53,8 +53,8 @@ do
   vim.o.splitbelow = true
 
   -- Sets how neovim will display certain whitespace characters in the editor.
-  vim.o.list = true
-  vim.opt.listchars = { tab = '- ', trail = '·', nbsp = '␣' }
+  vim.o.list = false
+  vim.opt.listchars = { tab = '▸ ', trail = '·', nbsp = '␣' }
 
   -- Preview substitutions live, as you type!
   vim.o.inccommand = 'split'
@@ -208,12 +208,12 @@ do
   -- Terminal
   local float_term = require 'custom.plugins.float_term'
 
-  local open_shell = float_term.create(vim.o.shell, 0.9, { 't', '<C-_>' })
+  local open_shell = float_term.create(vim.o.shell, 0.9, { close_keymaps = { 't', '<C-_>' } })
 
   vim.keymap.set('n', '<C-_>', open_shell, { desc = 'Open terminal' })
   vim.keymap.set('n', '<leader>ct', open_shell, { desc = 'Open terminal' })
-  vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
-  vim.keymap.set('t', '<Esc>q', '<C-\\><C-n><C-w>q', { desc = 'Close terminal' })
+  vim.keymap.set('t', '<C-space>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
+  vim.keymap.set('t', '<A-q>', '<C-\\><C-n><C-w>q', { desc = 'Close terminal' })
 
   -- Git
   local open_lazygit = float_term.create('lazygit', 0.9)
@@ -272,6 +272,24 @@ do
     callback = function()
       vim.opt_local.tabstop = 2
       vim.opt_local.shiftwidth = 2
+    end,
+  })
+
+  vim.api.nvim_create_autocmd('FileType', {
+    group = ft_group,
+    pattern = { 'typst' },
+    callback = function()
+      vim.opt_local.wrap = true
+      vim.opt_local.linebreak = true
+      vim.opt_local.breakindent = true
+      vim.keymap.set({ 'n', 'v' }, 'j', function()
+        --
+        return vim.v.count == 0 and 'gj' or 'j'
+      end, { expr = true, silent = true })
+      vim.keymap.set({ 'n', 'v' }, 'k', function()
+        --
+        return vim.v.count == 0 and 'gk' or 'k'
+      end, { expr = true, silent = true })
     end,
   })
 
