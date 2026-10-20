@@ -1,12 +1,12 @@
 {
   "$schema": "https://opencode.ai/v2/cli.json",
   "keybinds": {
-    "session.tab.next": "alt+l",
-    "session.tab.previous": "alt+h",
+    "session.tab.next": "alt+l,alt+j",
+    "session.tab.previous": "alt+h,alt+k",
     "agent.cycle": "tab",
     "agent.cycle.reverse": "shift+tab",
-    "dialog.select.prev": "alt+k",
-    "dialog.select.next": "alt+j",
+    "dialog.select.prev": "alt+k,up",
+    "dialog.select.next": "alt+j,down",
   },
   "diffs": {
     "wrap": "word"
@@ -15,7 +15,20 @@
     "sidebar": "hide",
     "scrollbar": false,
     "thinking": "show",
-    "new_location": "launch"
+    "new_location": "launch",
+    "markdown": "rendered"
   },
-  "animations": true
+  "animations": true,
+  "debug": {
+    "devtools": false
+  },
+  "tabs": {
+    "mode": "on",
+    "scope": "cwd",
+    "layout": "vertical",
+    "indicators": "status"
+  },
+  "theme": {
+    "name": "opencode"
+  }
 }

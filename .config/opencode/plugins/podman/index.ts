@@ -5,8 +5,48 @@ import { Plugin } from "@opencode/plugin";
 
 const OWNER_LABEL = "io.opencode.podman-workspace";
 const ROOT_LABEL = "io.opencode.podman-workspace-root";
+const IMAGE_KEY_LABEL = "io.opencode.podman-workspace-image-key";
 const OUTPUT_LIMIT = 48_000;
 const MAX_EXEC_TIMEOUT_SECONDS = 1_800;
+const DEFAULT_IMAGE_KEY = "alpine";
+
+const IMAGE_PROFILES = [
+  {
+    key: "alpine",
+    image: "docker.io/library/alpine",
+    description: "General-purpose lightweight Linux environment.",
+  },
+  {
+    key: "python",
+    image: "docker.io/library/python:latest",
+    description: "Python environment.",
+  },
+  {
+    key: "java-jar-analysis",
+    image: "localhost/java-jar-analysis:latest",
+    description: "JAR analysis environment.",
+  },
+] as const;
+
+function getImageProfile(key: string) {
+  return IMAGE_PROFILES.find((profile) => profile.key === key);
+}
+
+function withDefaultTag(reference: string): string {
+  const tagSeparator = reference.lastIndexOf(":");
+  const pathSeparator = reference.lastIndexOf("/");
+  return reference.includes("@") || tagSeparator > pathSeparator
+    ? reference
+    : `${reference}:latest`;
+}
+
+function sameImageReference(left: string | undefined, right: string): boolean {
+  return left !== undefined && withDefaultTag(left) === withDefaultTag(right);
+}
+
+const imageProfileHelp = IMAGE_PROFILES.map(
+  ({ key, image, description }) => `${key}=${image} (${description})`,
+).join("; ");
 
 type RunResult = { code: number; stdout: string; stderr: string };
 type ContainerInfo = {
@@ -145,50 +185,84 @@ export default Plugin.define({
 
     await ctx.tool.transform((editor) => {
       editor.add({
-        name: "podman_start",
+        name: "podman_images",
         description:
-          "Create or start this project's persistent rootless Podman workspace container, mounting the project at /workspace.",
+          "List the hardcoded image profiles accepted by podman_start. This reports allowed images, not whether they are installed locally.",
         input: inputNone,
-        execute: async (_input, toolContext) => {
+        execute: async () => {
+          const rows = IMAGE_PROFILES.map(
+            ({ key, image, description }) =>
+              `- ${key}=${image} (${description})`,
+          );
+          return {
+            content: `Allowed Podman workspace images:\n${rows.join("\n")}`,
+          };
+        },
+      });
+
+      editor.add({
+        name: "podman_start",
+        description: `Create or start this project's persistent rootless Podman workspace container, mounting the project at /workspace. Choose only a hardcoded image_key (${imageProfileHelp}). The image does not need to appear in podman_images; Podman may pull it if it is missing locally. Arbitrary image references are not accepted. The image must provide /bin/sh and sleep. A container's image cannot be changed in place; remove it before switching images.`,
+        input: {
+          type: "object",
+          properties: {
+            image_key: {
+              type: "string",
+              enum: IMAGE_PROFILES.map((profile) => profile.key),
+              description: `Choose one hardcoded key: ${IMAGE_PROFILES.map(({ key, description }) => `${key}: ${description}`).join("; ")}. The image can be pulled if it is not installed locally. Do not pass an image reference. Omit to use the alpine key.`,
+            },
+          },
+          additionalProperties: false,
+        },
+        execute: async (rawInput, toolContext) => {
+          const input = rawInput as { image_key?: string };
+          const requestedKey = input.image_key?.trim();
+          if (input.image_key !== undefined && !requestedKey) {
+            throw new Error("image_key must not be empty");
+          }
+          const imageKey = requestedKey ?? DEFAULT_IMAGE_KEY;
+          const profile = getImageProfile(imageKey);
+          if (!profile) {
+            throw new Error(
+              `Unknown image_key ${JSON.stringify(imageKey)}. Allowed keys: ${IMAGE_PROFILES.map((item) => item.key).join(", ")}`,
+            );
+          }
+          const image = profile.image;
+          const selectedKey = profile.key;
+
           const info = await inspect(toolContext.signal);
           if (info?.State?.Running) {
+            const existingKey = info.Config?.Labels?.[IMAGE_KEY_LABEL];
+            if (!sameImageReference(info.Config?.Image, image)) {
+              throw new Error(
+                `Container ${name} already uses image ${info.Config?.Image || "unknown"}${existingKey ? ` (profile ${existingKey})` : ""}; remove it with podman_remove before starting with hardcoded key ${selectedKey}`,
+              );
+            }
             return {
-              content: `Container ${name} is already running; project is mounted at /workspace.`,
+              content: `Container ${name} is already running; image=${info.Config?.Image || "unknown"}; image_key=${info.Config?.Labels?.[IMAGE_KEY_LABEL] || "legacy/unknown"}; project is mounted at /workspace.`,
             };
           }
           if (info) {
+            const existingKey = info.Config?.Labels?.[IMAGE_KEY_LABEL];
+            if (!sameImageReference(info.Config?.Image, image)) {
+              throw new Error(
+                `Container ${name} already uses image ${info.Config?.Image || "unknown"}${existingKey ? ` (profile ${existingKey})` : ""}; remove it with podman_remove before starting with hardcoded key ${selectedKey}`,
+              );
+            }
             await checked(["start", name], toolContext.signal);
             return {
-              content: `Started existing container ${name}; project is mounted at /workspace.`,
+              content: `Started existing container ${name}; image=${info.Config?.Image || "unknown"}; image_key=${existingKey || "legacy/unknown"}; project is mounted at /workspace.`,
             };
           }
 
-          const image = (
-            process.env.OPENCODE_PODMAN_IMAGE ?? "docker.io/library/alpine"
-          ).trim();
-
-          if (!image || image.includes("{env:")) {
-            throw new Error(
-              "Set OPENCODE_PODMAN_IMAGE in the OpenCode server environment before starting the container",
-            );
-          }
-
-          const selinux =
-            process.env.OPENCODE_PODMAN_SELINUX_LABEL?.trim() || "";
-          if (selinux !== "" && selinux !== "Z" && selinux !== "z") {
-            throw new Error(
-              "OPENCODE_PODMAN_SELINUX_LABEL must be empty, Z, or z",
-            );
-          }
-
           let volume = `${root}:/workspace:rw`;
-          if (selinux) volume += `,${selinux}`;
           const uid =
             typeof process.getuid === "function" ? process.getuid() : undefined;
           const gid =
             typeof process.getgid === "function" ? process.getgid() : undefined;
           const args = [
             "run",
+            "--pull=missing",
             "--detach",
             "--name",
             name,
@@ -196,6 +270,8 @@ export default Plugin.define({
             `${OWNER_LABEL}=true`,
             "--label",
             `${ROOT_LABEL}=${rootHash}`,
+            "--label",
+            `${IMAGE_KEY_LABEL}=${selectedKey}`,
             "--userns=keep-id",
           ];
           if (uid !== undefined && gid !== undefined)
@@ -214,7 +290,7 @@ export default Plugin.define({
           );
           await checked(args, toolContext.signal, 1_800_000);
           return {
-            content: `Started ${name} using ${image}; ${root} is mounted read/write at /workspace.`,
+            content: `Started ${name} using ${image} (image_key=${selectedKey}); ${root} is mounted read/write at /workspace.`,
           };
         },
       });
@@ -296,7 +372,7 @@ export default Plugin.define({
             };
           const state = info.State?.Running ? "running" : "stopped";
           return {
-            content: `Container ${name}: ${state}; image=${info.Config?.Image || "unknown"}; project mount=/workspace.`,
+            content: `Container ${name}: ${state}; image_key=${info.Config?.Labels?.[IMAGE_KEY_LABEL] || "legacy/unknown"}; image=${info.Config?.Image || "unknown"}; project mount=/workspace.`,
           };
         },
       });
